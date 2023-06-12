@@ -1,0 +1,304 @@
+---
+title: "Stats 101 Spring 2022 Final"
+subtitle: "Shanghai Property Report"
+author: "Anonymous"
+date: "3/10/2022"
+output:
+  html_document:
+    toc: true
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+library(tidyverse)
+library(gridExtra)
+library(knitr)
+library(broom)
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+#install.packages("visreg")
+library(visreg)
+library(plotly)
+
+
+
+lane <- read.csv("/Users/ericarquette/Desktop/STATS 101/001realhwlabs/final/shanghaiapts.csv")
+quan <- read.csv("/Users/ericarquette/Desktop/STATS 101/001realhwlabs/final/quan.csv")
+quan1 <- read.csv("/Users/ericarquette/Desktop/STATS 101/001realhwlabs/final/quan1.csv")
+```
+
+# Introduction and literature review
+
+Shanghai, as the most populous city in China and one of the largest cities in the world, has become an increasingly expensive place to live. When commodity prices rise quickly, house prices in Shanghai are no exception as the average has made its way to almost the top of China, according to the articles listed below. But on the other hand, Shanghai is full of merging between old styles and modern fashions that allow various kinds of houses ranging from one-roomed apartments without bathrooms to fancy villa of 500 square meters. Also, the inside decoration styles may be completely different with the exterior, which makes it even harder to predict their prices. Thus, in order to determine the rental prices and plan future investments, it is crucial to investigate the factors that influence prices of properties.
+
+Literature review:
+
+>* [Here Are The Numbers On Shanghai's Crazy House Prices](https://www.smartshanghai.com/articles/shanghai-life/here-are-the-numbers-on-shanghais-crazy-house-prices)
+>* [The heavy cost of housing in Shanghai, now the world’s most expensive city](https://www.loveproperty.com/gallerylist/114837/the-heavy-cost-of-housing-in-shanghai-now-the-worlds-most-expensive-city)
+>* [16 Factors To Help Determine The Right Property Price](https://www.forbes.com/sites/forbesrealestatecouncil/2020/07/21/16-factors-to-help-determine-the-right-property-price/?sh=3ac8e5205f35)
+>* [8 critical factors that influence a home’s value](https://www.opendoor.com/w/blog/factors-that-influence-home-value)
+
+Based on the articles about the factors and the real scenario in Shanghai, home size and usable space are the most important factors besides the location of a property. It is because in most cases, the value of an apartment is roughly estimated in price per square meter or square foot. Among all the spaces, livable space matters the most. For example, bedrooms is highly valued while lofts, garages, and basements usually have less impact on the price. Moreover, amenities like heating, air conditioner, and outdoor space can be counted as bonuses that increase the unit-price. Therefore, it is reasonable to expect a positive relationship between the number of each type of rooms and the rental price while the correlation of the numbers of bedrooms and bathrooms may be stronger than others variables. In other words, the numbers of bedrooms and bathrooms may be good predictor variables for the rental price. Moreover, considering the average room numbers, one added room may result in a quite significant increase in the price. When it comes to the supplemental amenities, properties equipped with some of them surely will be more valuable. But due to the preference of buyers and regional geographic features, air conditioners, WIFI, and balconies may gain more popularity while heat and oven may not cause a large difference.
+
+# Summary data
+
+The dataset contains 2,224 rows of information including the rental prices, the locations, the types of the properties, the numbers of each types of rooms, and the supplemental amenities. Since the object to be investigated is the rental price and how it changes with other factors, the response variable should undoubtedly be the rental price. The numbers of each type of rooms, which are numerical variables are reasonable predictor variables. There are also several categorical variables provided, which may help detailed investigation or serve as an indicator variable in a multiple regression model. 
+
+To avoid flaws that may cause problems for later statistical analyses such as outliers or non-normal distribution, the distributions of all the relevant variables should be checked first. The data with missing values were removed from the dataset. From the histograms of the variables below, we can improve our hypotheses or transform the data to fit the regression model better.
+
+There are three variables about the numbers of different types of rooms that are bedrooms, bathrooms, and living-dining rooms. Their distributions are all unimodal but highly right-skewed, which are reasonable because most properties in this dataset are apartments which have 2 to 3 rooms in total. Some of the old lanehouses may not even have living room or bathroom. As the majority are concentrated at low values, there are quite many outliers observed on the right-hand side, which represent the large detached houses and the villas. All the outliers were checked in case some error occurred, and one outlier observed in the histogram of bathrooms seems odd since it has 15 bathrooms in 50 square meters. The unreasonable number may result from an error when recording the data. Hence, it should be excluded to make the results more accurate. Although the distributions of the room numbers are right-skewed, which should be treated with a transformation, in this case huge amount of values are 0 or 1, making it hard to reduce the skewness. But due to the same reason, it is not necessary to perform a transformation because the amount of large values are very small. In real scenerio, if we have more data, it can a good idea to apply the log transformation to these right-skewed distributions.
+
+```{r}
+
+p2<-ggplot(lane, aes(bedrooms))+
+  geom_histogram(fill="green", color="black", bins=20)+
+  geom_boxplot(width=100)+
+  labs(title="Distribution of\nnumber of bedrooms", x="bedroom number")
+
+p3 <- ggplot(lane, aes(bathrooms))+
+  geom_histogram(fill="orange", color="black", bins=20)+
+  geom_boxplot(width=200)+
+  labs(title="Distribution of\nnumber of bathrooms", x="bathroom number")
+
+p5<- ggplot(lane, aes(sqmeters))+
+  geom_histogram(fill="purple", color="black", bins=20)+
+  geom_boxplot(width=50)+
+  labs(title="Distribution of\n square meters", x="square meters")
+
+p4<-ggplot(lane, aes(living.dining))+
+  geom_histogram(fill="lightblue", color="black", bins=20)+
+  geom_boxplot(width=50)+
+  labs(x="living-dining rooms",title="Distribution of \nliving-dining rooms")
+
+p6<-ggplot(lane, aes(total_amens))+
+  geom_histogram(fill="lightgreen", color="black", bins=20)+
+  geom_boxplot(width=25)+
+  labs(x="Total amenities",title="Distribution of \ntotal amenities")
+
+p1<-ggplot(lane, aes(rent))+
+  geom_histogram(fill="pink", color="black", bins=20)+
+  geom_boxplot(width=25)+
+  labs(x="Rental price",title="Distribution of \nrental price")+
+  theme(axis.text.x = element_text(angle=20, hjust=1))
+
+
+grid.arrange(p1,p2,p3,p4,p5,p6,ncol=3)
+```
+
+The distributions of rental price and square meters are also quite right skewed due to the impact of the large values, as there are many visible outliers in the histogram. According to the table below, the distributions are quite concentrated as the standard deviations are 13507.1 and 69.8 respectively, let alone the small IQR. Also, we can learn from the means and the medians that the distributions are highly right skewed. Fortunately, both of them are unimodal and the values are continuous so it is fine to apply a log transformation to reduce the skewness and make it more normal. It should be noted that there are three observations of the variable square meters whose values are one, which is an impossible value for a property with a bedroom and a bathroom. Thus, they were also removed before further analyses. 
+
+The distribution of the number of total amenities is right skewed and unimodal, as learned from the histogram. Its mean and median, which are 2.59 and 2 respectively also confirm its skewness as the mean is pulled towards its tail. The standard deviation is on a moderate level, which says the observations are not quite concentrated. No visible outlier is seen and a transformation is not really necessary considering the small range and the scattered distribution.
+
+
+```{r echo=FALSE}
+kable(
+  quan %>%
+   
+    select(c("Variables","min", "Q1","mean", "median","Q3","max","SD")) %>%
+    arrange(min, Q1,mean, median, Q3, max, SD),
+    
+    col.names=c("Variables","min", "Q1","mean","median","Q3","max","SD"))
+```
+
+
+```{r eval=FALSE, include=FALSE}
+min(lane$total_amens)
+max(lane$total_amens)
+median(lane$total_amens)
+quantile(lane$total_amens, probs=0.25)
+quantile(lane$total_amens, probs=0.75)
+sd(lane$total_amens)
+mean(lane$total_amens)
+
+
+```
+
+# Regression interpretation
+
+Among all the variables, some of them predict the rental price better while some not. By using a correlation matrix of variables, we can view how the variables correlated with each other. As mentioned before, the response variable is the rental price since it is the object that we are investigating on. Choosing the predictor variables with stronger correlation can help develop a better regression model but collinearity may trigger potential problems. 
+
+From the correlation plot below, we can see that the room numbers and the square meters have a strong association with the rental price while the total amenities do not. The strong correlation between the room numbers and the price is consistent with our expectation, which is also the variables that buyers will consider in the first place. Thus, it is a good idea to include them in the regression model. But as the correlation plot shows, the collinearity is an issue that cannot be ignored. In real scenario, if a house has more bedrooms, surely it will have more bathrooms, living rooms and square meters. Since collinear issue may reduce the precision of the estimated coefficients and weaken the statistical power of the model, we have to choose the most crucial variables. From the background review and prior data exploration, the numbers of bedrooms and square meters can be pretty good predictor variables because the number of bedrooms can indicate the capacity of a property and the value of square meters includes other space. They are both statistically and practically significant. Type of usage can be a good indicator variable that indicates which of the two categories each case is in. By common sense, multi-use properties are more likely to have higher value because business is profitable. Thus, the type of usage may have a significant impact on the rental price. In sum, based on the background review and data exploration, I decide to build a regression model using logarithmic rental price as the response variable, the numbers of bedrooms and logarithmic square meters as two predictor variables, and the type of usage as the indicator variable.
+
+
+```{r, out.width="70%"}
+lane<-lane%>%mutate(log_rent=log(rent), log_square_meters=log(sqmeters), total_amenities=total_amens)
+lane.subset <- lane %>% 
+  select(c( log_rent, bedrooms, living.dining, bathrooms, log_square_meters, total_amenities))
+
+testcors <- cor(lane.subset, use="complete.obs")
+ggcorrplot(testcors,method="circle",type="lower", lab=TRUE, lab_size = 3.5, colors=c("#CCFFCC","white","orange"), title="Correlation plot of variables")
+
+```
+
+
+Apart from previous analysis on the correlation between variables in this dataset, the scatter plots of the two numerical variables against the response variable after log transformation should be checked respectively. Both of the scatter plots has a positive and straight pattern which shows a moderately strong relationship between the predictor variables and response variable. Moreover, no obvious outlier can be seen in the two scatter plot.  Therefore, the relationships are good enough to develop a multiple regression model, which confirms the selection of predictor variables.
+
+```{r, out.width="65%"}
+lane<-lane%>%mutate(multi_use=case_when(use_type_en=="multi-use"~1, use_type_en=="residential"~0))
+bathroomswo <- lane%>%filter(bathrooms<15, sqmeters>1)
+p6<- ggplot(bathroomswo, aes(log(sqmeters), log(rent)))+
+  geom_jitter()+
+  geom_smooth( method="lm", formula=y~x, se=FALSE)+
+  labs(title="Relationship between log(square \n meters) and log(rental price)", x="log(square meters)")
+
+p7<- ggplot(lane, aes(bedrooms, log(rent)))+
+  geom_point(position="jitter")+
+  geom_smooth( method="lm", formula=y~x, se=FALSE)+
+  labs(title="Relationship between number \nof bedrooms and log(rental price)", x="bedrooms number")
+
+grid.arrange(p6,p7,ncol=2)
+```
+
+Using the response variable logarithmic rental price and the predictor variables number of bedrooms, logarithmic square meters, and type of usage, we can obtain the following multiple regression model,
+
+> $log(Rental\ price)= 5.810+0.045*Bedrooms+0.809*log(Square \ meters)+0.133*Multi\_use$
+
+# Regression diagnostics
+
+To further ensure that the regression model is valid and good enough to be interpreted, the regression conditions and the residuals need to be checked. The regression model needs to satisfy the following conditions:
+
+* Quantitative variable condition: All the predictor variables and the response variable are quantitative variables.
+* Straight enough condition: The scatter plots of each predictor variable against the response variable above have a straight and positive pattern after the outliers were removed and the response variable was re-expressed. I also checked the residual plot which shows no pattern and the histogram of residuals which is symmetric.
+* Does the plot thicken? condition: In each of the scatter plots of the residuals against each predictor variables and the predicted values, the spread around the line is nearly constant. The residual plots below show no obvious fan shape which may indicate a problem.
+* Outliers: The residual plot below has a very small number of outliers. After checking them individually, they are all reasonable cases. Considering the large sample size, it is fine to keep them in regression model.
+
+The residual plot below which shows the residuals of the predicted values has no obvious fan shape or linear pattern that may indicate a flaw in the chosen variables, and there is no visible outlier. Moreover, the residuals are quite small and concentrated around zero. It to some extent means that the regression model is pretty good. The partial residual plots show the relationship between a predictor variables and the response variable given that other variables are also in the model. 
+
+The two partial regression plots have a positive direction that corresponds to the sign of their coefficients. Moreover, their forms are straight enough which shows that the predictor variables are reasonable to be included in this model. The slope of the least square line fit to the plot of the bedroom numbers is quite small, but it is consistent with the estimated coefficient. The plots not only confirm the validity of the regression model but also indicate the strength of the estimated coefficients. Therefore, the regression model can be used for further analyses and prediction.
+
+```{r,out.width="50%"}
+fit <- lm(data=bathroomswo, log(rent)~bedrooms+log_square_meters+use_type_en)
+aug.fit<-augment(fit)
+
+ggplot(fit, aes(x=.fitted, y=.resid, color=as.factor(use_type_en)))+
+  geom_jitter(height=0.25, width=0.25, alpha=0.6)+
+  geom_hline(yintercept = 0)+
+  labs(title="Relationship between residual and predicted values", y="Residual",x= "Predicted log(rental price)")+
+  theme(legend.position = c(x=0.9,y=0.75))+
+  scale_color_discrete(name="Type of usage")
+
+
+p8<-visreg(fit, "bedrooms", gg=TRUE, jitter=TRUE)+ggtitle("Partial residual plots")
+
+p9<-visreg(fit, "log_square_meters", gg=TRUE, jitter=TRUE)
+
+grid.arrange(p8, p9)
+```
+
+# Interpreting coefficients
+
+```{r eval=FALSE, include=FALSE}
+summary(lm(data=bathroomswo, log(rent)~log(sqmeters)+bedrooms+multi_use))
+```
+
+
+The coefficients of the multiple regression model are as follow.
+
+Coefficients      |Values  |P-value
+------------------|--------|------------
+Intercept         |5.810   |$\approx 0$
+Bedrooms          |0.045   |$\approx 0$
+log(square meters)|0.809   |$\approx 0$
+Multi-use         |0.133   |$\approx 0$
+Residual SE       |0.3102  |-
+Multiple R-squared|0.7823  |-
+
+For the intercept, the coefficient of 5.81 means that when all predictor variables become zero, the predicted count of logarithmic rental price will be 5.81. The null hypothesis for a regression is that the coefficient equals to zero, so the p-value near zero says that we can reject the null hypothesis. Then, it is safe to conclude that the coefficient of the intercept is statistically significant. But in real scenario, there is no property with no space, so it has no practical meaning.
+
+For the predictor variables, the null hypotheses are same with the one for the intercept that the coefficient is zero. So the p-values that almost equals to zero for numbers of bedrooms, ogarithmic square meters, and multi-use houses indicate that the coefficients are unlikely to be zero, so they are statistically significant. The p-values further confirm that the regression model is valid and meaningful. When it comes to the practical meanings of the coefficients of the predictor variables, they are also quite significant. Since I applied log transformation to the square meters and the rental price, it is difficult to see the real change directly from the statistics, but 0.045, 0.809, and 0.133 can make quite a difference if we take the exponent of the response variable. We can also interpret the change using percentage. 
+
+For square meters, the coefficient of 0.809 means that 10% increase in square meters can lead to an 8% increase in rental price, holding the bedroom number and use type fixed. According to the table below, when the value of square meters changes from Q1 to Q3, the increase in logarithmic rental price will be 0.598, which is also quite large. For number of bedrooms, the coefficient of 0.045 means that one more bedroom can lead to 4.5% increase in rental price given the square meters and use type fixed. When it changes from Q1 to Q3, the corresponding change of 0.045 is not very big but non-negligible, which is consistent with the partial residual plot. Anyway, the two predictor variables are both crucial in the model and in real life.
+
+Variable           |Difference in log(rent) from Q1 to Q3
+-------------------|--------------------------------------
+square meters      |$\ \  \ \ \ \ \ \ \ \ \ \ \ \  \ \ \ \ \ \ \ \ \ \ \  \ \ \ \ \  \ 0.598$
+bedrooms           |$\ \  \ \ \ \ \ \ \ \ \ \ \ \  \ \ \ \ \ \ \ \ \ \ \  \ \ \ \ \  \ 0.045$
+
+Type of usage acts as an indicator variable in this regression model. The positive coefficient means that the logarithmic rental price will increase by 0.133 if the property is multi-use instead of residential. It is actually quite reasonable because multi-use properties are usually more profitable for owners, or tenants and landlords in this case.
+
+The multiple R-squared is 0.7823. It means this multiple regression model accounts for 78% percent of the variations of the predicted values, which indicates that the data fit the model pretty well. In other words, it is a pretty good statistic model and can be applied practically for future prediction.
+
+Eventually, the residual standard error is 0.31. It measures how spread out the residuals are. According to the 68-95-99.7 Rule for interpreting standard deviation, about 68% of the residuals are within 0.31 and about 95% of them are within 0.62 from the prediction. Considering the range of the response variable is 4.48, the standard error is quite small and reasonable.
+
+Below is the 3D scatter plot of the multiple regression model which may help us understand it better.
+
+```{r}
+plot_ly(data=bathroomswo, z=~log(rent), x=~log(sqmeters), y=~bedrooms, color=~use_type_en, opacity=0.6) %>%
+  add_markers()
+```
+
+# Supplemental amenity analysis
+
+Apart from the numbers of rooms that affect the rental price directly, whether a property is equipped with certain supplemental amenities may also add to its value according to background review and real life experience. In this section, we will evaluate and compare all the amenities in this dataset to see whether one of them is most valuable. In order to view the difference made by the amenities, the mean rental price of the properties with and without a certain kind of amenities will be calculated respectively. Then, a two-sample t-test whose null hypothesis is that there is no difference can be performed and a confidence interval for difference between two means can be constructed. In this way, the difference caused by the amenities can be viewed more precisely.
+
+The relevant statistics of the amenities including heat, air conditioner, balcony, WIFI, outdoor space, bathtub, floor heat and oven are listed in the table below.
+
+```{r echo=FALSE}
+kable(
+  quan1 %>%
+   
+    select(c("Amenity","Proportion", "Mean_with","Mean_without", "p.value","CI")) %>%
+    arrange(Proportion, Mean_with,Mean_without, p.value,CI),
+    
+    col.names=c("Amenity","Proportion", "Mean_with","Mean_without", "p-value","95%CI"))
+```
+
+
+Among all the amenities, there are two of them, air conditioner and WIFI, do not lead to a statistically significant difference in means. Not only are their corresponding p-values are small but also the confidence intervals contain zero. Since there are over 70% of properties are equipped with air conditioner, it is not surprising to see that a popular amenity does not make much difference to the price. But on the other hand, it shows that the demand for air conditioner is high due to the hot and humid weather in summer. But there are only 20% of properties have WIFI, which seems odd in this interconnected world. A reasonable explanation is that the tenants tend to bear the network cost on their own, which is not very expensive nowadays. Hence, a small difference in price is understandable.
+
+The other amenities more or less contribute to the rental price significantly in terms of statistics. Their p-values are all small enough for us to reject the null hypotheses without worrying about the two types of errors. Thus, we can simply compare their confidence interval to have a general view of whose difference is larger or smaller. Oven and balcony cause relatively small difference. I assume it has something to do with the local life-style. For instance, oven is commonly used when making Chinese cuisines. But it should be noted that the small proportion of houses with oven may indicate a potential future growth. Heat and floor heat are associated with a moderate increase in rental price. Though they are not popular amenities due to the humid mild climate in Shanghai, they are possible to have a promising future. The last two amenities that are bathtubs and outdoor space that cause a quite large difference in price. It is possible that the significant increase is due to lurking variables like the space. In other words, small apartments usually do not have such amenities. However, it cannot be denied that the confidence interval for bathtubs which is (10713, 13871) indicate the largest different and it is way more larger than others.
+
+Therefore, I recognize bathtub as the most influential amenity that add he most value to rental price. But it should be noted that in real scenario, we should not only focus on those influential amenities or the total number of them because different groups of customers may have different demand and preference. Also, further analyses can be made on these topics to help us make a better prediction.
+
+
+```{r eval=FALSE, include=FALSE}
+mean(lane$ac)
+lanewithac<-lane%>%filter(ac==1)
+lanewoac<-lane%>%filter(ac==0)
+t.test(lanewithac$rent, lanewoac$rent)
+
+lanewithbalcony<-lane%>%filter(balcony==1)
+lanewobalcony<-lane%>%filter(balcony==0)
+t.test(lanewithbalcony$rent, lanewobalcony$rent)
+
+mean(lane$WIFI)
+lanewithwifi<-lane%>%filter(WIFI==1)
+lanewowifi<-lane%>%filter(WIFI==0)
+t.test(lanewithwifi$rent, lanewowifi$rent)
+
+mean(lane$oven)
+lanewithoven<-lane%>%filter(oven==1)
+lanewooven<-lane%>%filter(oven==0)
+t.test(lanewithoven$rent, lanewooven$rent)
+
+mean(lane$bathtub)
+lanewithbathtub<-lane%>%filter(bathtub==1)
+lanewobathtub<-lane%>%filter(bathtub==0)
+t.test(lanewithbathtub$rent, lanewobathtub$rent)
+
+mean(lane$outdoor_space)
+lanewithoutdoor_space<-lane%>%filter(outdoor_space==1)
+lanewooutdoor_space<-lane%>%filter(outdoor_space==0)
+t.test(lanewithoutdoor_space$rent, lanewooutdoor_space$rent)
+
+mean(lane$heat)
+lanewithheat<-lane%>%filter(heat==1)
+lanewoheat<-lane%>%filter(heat==0)
+t.test(lanewithheat$rent, lanewoheat$rent)
+
+mean(lane$floor_heat)
+lanewithfloor_heat<-lane%>%filter(floor_heat==1)
+lanewofloor_heat<-lane%>%filter(floor_heat==0)
+t.test(lanewithfloor_heat$rent, lanewofloor_heat$rent)
+```
+
+# Conclusion
+
+After exploring through the various factors that can affect the rental price and the supplemental amenities that add to the value, a multiple regression for price prediction was constructed and various amenities were carefully analyzed. The regression model is developed based on bedroom number, logarithmic square meters, and type of usage. After cleaning and re-expressing the original data, a model accounts for 78% percent of the variations of the predicted values was eventually built, which should predict the rental price quite well. From the estimated coefficients, we learned that both the bedroom number and the square meters have a statistically significant positive relationship with the price. And the price will be even higher if the property is multi-use. The results are consistent with real scenario and our initial expectations as well based on the background review, which further confirms the validity of the regression model. When it comes to the amenities, most of them cause a significant difference to the rental price, especially bathtub and outdoor space. Other amenities more or less contribute to the price. Though some difference may result from lurking variables such as the total space, we assume that the demand for the supplemental amenities have some connection with the local life style and geographical conditions.
+
+Based on the results, we can make some recommendation for the future investments of our firm. Bedroom numbers, total square meters, and type of usage as three critical variables identified in our analyses, should be focused on when evaluating the value of a property. Though it is true that large space is often associated with higher price, it does not mean that we can ignore those small apartments because the amount and the market of them are quite large, which can guarantee a basic profit. Multi-use properties have much higher price in general. Thus, when deciding between two similar houses with different use type, it is good idea to prefer the multi-use one. The regression model can also serve as a tool for us to determine an appropriate rental price when offering the properties to customers. When upgrading the properties, bathtub can be the best amenity to invest on if the space allows. But if the apartment is too small to fit a bathtub, it is not a bad idea to equip it with heat or oven. Moreover, considering the large proportion of properties with air conditioner, though it does not really make large difference, install one can attract potential customers. Anyway, the decisions should be made based on the the demand of the local customers, where we can perform further analyses.
+
+Though our analyses seem good, there are a few limitations. First, the collinear issue of the predictor variables. Though the issue is not very serious after transformation and the variables correlate with the response variable quite well individually, the collinearity may still reduce the precision of the estimated coefficients. Second, there may be lurking variables through the analyses. For example, larger properties tend to have more amenities. Also, if a property is equipped with one amenity, it is more likely to have other amenities as well. To deal with these possible issues, further analyses can be made on detailed information and their locations on district level. Last but not least, almost all the variables in this dataset have a positive relationship with the rental price. To improve the quality of the regression model, some defects of the properties which may decrease the price can be included.
